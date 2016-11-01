@@ -463,9 +463,8 @@ int InitializeOptions(WPARAM wParam, LPARAM)
 	OPTIONSDIALOGPAGE odp = { 0 };
 	odp.hInstance = hInst;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_SSOPT);
-	odp.pszGroup = LPGEN("Events");//FIXME: move to...Group?
-	odp.pszTitle = MENU_NAME;
-	odp.groupPosition = 910000000;
+	odp.szGroup.a = LPGEN("Events");//FIXME: move to...Group?
+	odp.szTitle.a = MENU_NAME;
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = DlgProcOptions;
 	Options_AddPage(wParam, &odp);

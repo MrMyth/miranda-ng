@@ -109,11 +109,10 @@ int QuotesEventFunc_OnUserInfoInit(WPARAM wp, LPARAM lp)
 
 	OPTIONSDIALOGPAGE odp = { 0 };
 	odp.hInstance = g_hInstance;
-	odp.hIcon = Quotes_LoadIconEx(IDI_ICON_MAIN);
 	odp.pfnDlgProc = QuoteInfoDlgProc;
 	odp.position = -2000000000;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_DIALOG_QUOTE_INFO);
-	odp.pszTitle = LPGEN("Quote");
+	odp.szTitle.a = LPGEN("Quote");
 	UserInfo_AddPage(wp, &odp);
 	return 0;
 }

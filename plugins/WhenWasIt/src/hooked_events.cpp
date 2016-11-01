@@ -46,9 +46,8 @@ static int OnOptionsInitialise(WPARAM wParam, LPARAM)
 	odp.position = 100000000;
 	odp.hInstance = hInstance;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_WWI);
-	odp.pwszTitle = LPGENW("Birthdays");
-	odp.pwszGroup = LPGENW("Contacts");
-	odp.groupPosition = 910000000;
+	odp.szTitle.w = LPGENW("Birthdays");
+	odp.szGroup.w = LPGENW("Contacts");
 	odp.flags = ODPF_BOLDGROUPS | ODPF_UNICODE;
 	odp.pfnDlgProc = DlgProcOptions;
 	Options_AddPage(wParam, &odp);

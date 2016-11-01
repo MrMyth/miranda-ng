@@ -328,11 +328,11 @@ int CPsTreeItem::Icon(HIMAGELIST hIml, OPTIONSDIALOGPAGE *odp, BYTE bInitIconsOn
 			if (odp->hInstance == ghInst) {
 
 				// the pszGroup holds the iconfile for items added by uinfoex
-				sid.defaultFile.w = odp->pwszGroup;
+				sid.defaultFile.w = odp->szGroup.w;
 
 				// icon library exists?
 				if (sid.defaultFile.w)
-					sid.iDefaultIndex = (INT_PTR)odp->hIcon;
+					sid.iDefaultIndex = odp->dwInitParam;
 				// no valid icon library
 				else {
 					bNeedFree = true;
@@ -342,10 +342,7 @@ int CPsTreeItem::Icon(HIMAGELIST hIml, OPTIONSDIALOGPAGE *odp, BYTE bInitIconsOn
 			}
 			// default icon is delivered by the page to add
 			else {
-				if (odp->hIcon)
-					sid.hDefaultIcon = odp->hIcon;
-				else
-					sid.hDefaultIcon = ImageList_GetIcon(hIml, 0, ILD_NORMAL), bNeedFree = true;
+				sid.hDefaultIcon = ImageList_GetIcon(hIml, 0, ILD_NORMAL), bNeedFree = true;
 				sid.iDefaultIndex = -1;
 			}
 		}
@@ -404,15 +401,15 @@ int CPsTreeItem::Create(CPsHdr* pPsh, OPTIONSDIALOGPAGE *odp)
 
 		if (pPsh->_dwFlags & PSF_PROTOPAGESONLY) {
 			if (_dwFlags & ODPF_USERINFOTAB)
-				mir_snwprintf(szTitle, L"%s %d\\%s", odp->pwszTitle, pPsh->_nSubContact+1, odp->pwszTab);
+				mir_snwprintf(szTitle, L"%s %d\\%s", odp->szTitle.w, pPsh->_nSubContact+1, odp->szTab.w);
 			else
-				mir_snwprintf(szTitle, L"%s %d", odp->pwszTitle, pPsh->_nSubContact+1);
+				mir_snwprintf(szTitle, L"%s %d", odp->szTitle.w, pPsh->_nSubContact+1);
 		}
 		else {
 			if (_dwFlags & ODPF_USERINFOTAB)
-				mir_snwprintf(szTitle, L"%s\\%s", odp->pwszTitle, odp->pwszTab);
+				mir_snwprintf(szTitle, L"%s\\%s", odp->szTitle.w, odp->szTab.w);
 			else
-				mir_wstrcpy(szTitle, odp->pwszTitle);
+				mir_wstrcpy(szTitle, odp->szTitle.w);
 		}
 		// set the unique utf8 encoded name for the item
 		if (err = Name(szTitle, (_dwFlags & ODPF_UNICODE) == ODPF_UNICODE)) 

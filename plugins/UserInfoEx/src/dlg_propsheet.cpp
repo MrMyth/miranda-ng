@@ -356,7 +356,7 @@ static INT_PTR AddPage(WPARAM wParam, LPARAM lParam)
 
 	if (pPsh->_dwFlags & (PSF_PROTOPAGESONLY | PSF_PROTOPAGESONLY_INIT)) {
 		BYTE bIsUnicode = (odp->flags & ODPF_UNICODE) == ODPF_UNICODE;
-		wchar_t *ptszTitle = bIsUnicode ? mir_wstrdup(odp->pwszTitle) : mir_a2u(odp->pszTitle);
+		wchar_t *ptszTitle = bIsUnicode ? mir_wstrdup(odp->szTitle.w) : mir_a2u(odp->szTitle.a);
 
 		// avoid adding pages for a meta subcontact, which have been added for a metacontact.
 		if (pPsh->_dwFlags & PSF_PROTOPAGESONLY) {
@@ -431,61 +431,61 @@ static int AddProtocolPages(OPTIONSDIALOGPAGE& odp, WPARAM wParam, LPSTR pszProt
 	wchar_t szTitle[MAX_PATH];
 	const BYTE ofs = (pszProto) ? mir_snwprintf(szTitle, L"%S\\", pszProto) : 0;
 
-	odp.pwszTitle = szTitle;
+	odp.szTitle.w = szTitle;
 	
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_CONTACT_GENERAL);
 	odp.position = 0x8000000;
 	odp.pfnDlgProc = PSPProcGeneral;
-	odp.hIcon = (HICON)ICONINDEX(IDI_TREE_GENERAL);
+	odp.dwInitParam = ICONINDEX(IDI_TREE_GENERAL);
 	mir_wstrncpy(szTitle + ofs, LPGENW("General"), _countof(szTitle) - ofs);
 	AddPage(wParam, (LPARAM)&odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_CONTACT_ADDRESS);
 	odp.position = 0x8000001;
 	odp.pfnDlgProc = PSPProcContactHome;
-	odp.hIcon = (HICON)ICONINDEX(IDI_TREE_ADDRESS);
+	odp.dwInitParam = ICONINDEX(IDI_TREE_ADDRESS);
 	mir_wstrncpy(szTitle + ofs, LPGENW("General") L"\\" LPGENW("Contact (private)"), _countof(szTitle) - ofs);
 	AddPage(wParam, (LPARAM)&odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_CONTACT_ORIGIN);
 	odp.position = 0x8000002;
 	odp.pfnDlgProc = PSPProcOrigin;
-	odp.hIcon = (HICON)ICONINDEX(IDI_TREE_ADVANCED);
+	odp.dwInitParam = ICONINDEX(IDI_TREE_ADVANCED);
 	mir_wstrncpy(szTitle + ofs, LPGENW("General") L"\\" LPGENW("Origin"), _countof(szTitle) - ofs);
 	AddPage(wParam, (LPARAM)&odp);
 		
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_CONTACT_ANNIVERSARY);
 	odp.position = 0x8000003;
 	odp.pfnDlgProc = PSPProcAnniversary;
-	odp.hIcon = (HICON)ICONINDEX(IDI_BIRTHDAY);
+	odp.dwInitParam = ICONINDEX(IDI_BIRTHDAY);
 	mir_wstrncpy(szTitle + ofs,  LPGENW("General") L"\\" LPGENW("Anniversaries"), _countof(szTitle) - ofs);
 	AddPage(wParam, (LPARAM)&odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_CONTACT_COMPANY);
 	odp.position = 0x8000004;
 	odp.pfnDlgProc = PSPProcCompany;
-	odp.hIcon = (HICON)ICONINDEX(IDI_TREE_COMPANY);
+	odp.dwInitParam = ICONINDEX(IDI_TREE_COMPANY);
 	mir_wstrncpy(szTitle + ofs, LPGENW("Work"), _countof(szTitle) - ofs);
 	AddPage(wParam, (LPARAM)&odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_CONTACT_ADDRESS);
 	odp.position = 0x8000005;
 	odp.pfnDlgProc = PSPProcContactWork;
-	odp.hIcon = (HICON)ICONINDEX(IDI_TREE_ADDRESS);
+	odp.dwInitParam = ICONINDEX(IDI_TREE_ADDRESS);
 	mir_wstrncpy(szTitle + ofs, LPGENW("Work") L"\\" LPGENW("Contact (work)"), _countof(szTitle) - ofs);
 	AddPage(wParam, (LPARAM)&odp);
 		
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_CONTACT_ABOUT);
 	odp.position = 0x8000006;
 	odp.pfnDlgProc = PSPProcAbout;
-	odp.hIcon = (HICON)ICONINDEX(IDI_TREE_ABOUT);
+	odp.dwInitParam = ICONINDEX(IDI_TREE_ABOUT);
 	mir_wstrncpy(szTitle + ofs, LPGENW("About"), _countof(szTitle) - ofs);
 	AddPage(wParam, (LPARAM)&odp);
 
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_CONTACT_PROFILE);
 	odp.position = 0x8000007;
 	odp.pfnDlgProc = PSPProcContactProfile;
-	odp.hIcon = (HICON)ICONINDEX(IDI_TREE_PROFILE);
+	odp.dwInitParam = ICONINDEX(IDI_TREE_PROFILE);
 	mir_wstrncpy(szTitle + ofs, LPGENW("About") L"\\" LPGENW("Profile"), _countof(szTitle) - ofs);
 	AddPage(wParam, (LPARAM)&odp);
 	return 0;
@@ -508,21 +508,21 @@ static int InitDetails(WPARAM wParam, LPARAM lParam)
 			OPTIONSDIALOGPAGE odp = { 0 };
 			odp.hInstance = ghInst;
 			odp.flags = ODPF_ICON | ODPF_UNICODE;
-			odp.pwszGroup = IcoLib_GetDefaultIconFileName();
+			odp.szGroup.w = IcoLib_GetDefaultIconFileName();
 
 			if (lParam) {
 				// ignore common pages for weather contacts
 				if (!pPsh->_pszProto || _stricmp(pPsh->_pszProto, "weather")) {
 					AddProtocolPages(odp, wParam);
-					odp.pwszTitle = LPGENW("About") L"\\" LPGENW("Notes");
+					odp.szTitle.w = LPGENW("About") L"\\" LPGENW("Notes");
 				}
 				else
-					odp.pwszTitle = LPGENW("Notes");
+					odp.szTitle.w = LPGENW("Notes");
 
 				odp.pszTemplate = MAKEINTRESOURCEA(IDD_CONTACT_ABOUT);
 				odp.position = 0x8000008;
 				odp.pfnDlgProc = PSPProcMyNotes;
-				odp.hIcon = (HICON)ICONINDEX(IDI_TREE_NOTES);
+				odp.dwInitParam = ICONINDEX(IDI_TREE_NOTES);
 				AddPage(wParam, (LPARAM)&odp);
 			}
 		}

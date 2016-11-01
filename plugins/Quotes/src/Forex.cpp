@@ -146,7 +146,6 @@ void InitMenu()
 #ifdef CHART_IMPLEMENT
 	SET_UID(mi, 0x65da7256, 0x43a2, 0x4857, 0xac, 0x52, 0x1c, 0xb7, 0xff, 0xd7, 0x96, 0xfa);
 	mi.name.w = LPGENW("Chart...");
-	mi.popupPosition = 2;
 	mi.hIcolibItem = NULL;
 	mi.pszService = "Quotes/Chart";
 	g_hMenuChart = Menu_AddContactMenuItem(&mi, QUOTES_PROTOCOL_NAME);
@@ -269,9 +268,8 @@ int QuotesEventFunc_OptInitialise(WPARAM wp, LPARAM/* lp*/)
 	OPTIONSDIALOGPAGE odp = { 0 };
 	odp.position = 910000000;
 	odp.hInstance = g_hInstance;
-	odp.pwszTitle = _T(QUOTES_PROTOCOL_NAME);
-	odp.pwszGroup = LPGENW("Network");
-	odp.hIcon = Quotes_LoadIconEx(IDI_ICON_MAIN);
+	odp.szTitle.w = _T(QUOTES_PROTOCOL_NAME);
+	odp.szGroup.w = LPGENW("Network");
 	odp.flags = ODPF_USERINFOTAB | ODPF_UNICODE;
 
 	std::for_each(rapProviders.begin(), rapProviders.end(), boost::bind(&IQuotesProvider::ShowPropertyPage, _1, wp, boost::ref(odp)));

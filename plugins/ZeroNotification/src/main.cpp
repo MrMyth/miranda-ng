@@ -208,9 +208,8 @@ static int OptionsInitialize(WPARAM wParam, LPARAM)
 	odp.hInstance = hInst;
 	odp.flags = ODPF_UNICODE;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPT_NOSOUND);
-	odp.pwszTitle = LPGENW("Zero Notifications");
-	odp.pwszGroup = LPGENW("Plugins");
-	odp.groupPosition = 100000000;
+	odp.szTitle.w = LPGENW("Zero Notifications");
+	odp.szGroup.w = LPGENW("Plugins");
 	odp.pfnDlgProc = DlgProcNoSoundOpts;
 	Options_AddPage(wParam, &odp);
 	return 0;

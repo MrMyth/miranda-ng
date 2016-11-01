@@ -12,6 +12,7 @@
 #define MS_STATUSMSG  "MenuEx/CopyStatusMsg"
 #define MS_COPYIP     "MenuEx/CopyIP"
 #define MS_COPYMIRVER "MenuEx/CopyMirVer"
+#define MS_OPENIGNORE "MenuEx/OpenIgnoreOptions"
 
 const int vf_default = VF_VS | VF_HFL | VF_IGN | VF_CID | VF_SHOWID | VF_RECV | VF_STAT | VF_SMNAME | VF_CIDN | VF_CIP;
 
@@ -23,7 +24,6 @@ static HGENMENU hIgnoreItem[9], hProtoItem[MAX_PROTOS];
 HICON hIcons[5];
 BOOL bPopupService = FALSE;
 PROTOACCOUNT **accs;
-OPENOPTIONSDIALOG ood;
 int protoCount;
 int hLangpack;
 
@@ -95,17 +95,17 @@ struct ModSetLinkLinkItem { // code from dbe++ plugin by Bio
 	BYTE *next; //struct ModSetLinkLinkItem
 };
 
-typedef struct {
+struct ModuleSettingLL {
 	struct ModSetLinkLinkItem *first;
 	struct ModSetLinkLinkItem *last;
-} ModuleSettingLL;
+};
 
-int GetSetting(MCONTACT hContact, const char *szModule, const char *szSetting, DBVARIANT *dbv)
+static int GetSetting(MCONTACT hContact, const char *szModule, const char *szSetting, DBVARIANT *dbv)
 {
 	return db_get_s(hContact, szModule, szSetting, dbv, 0);
 }
 
-int enumModulesSettingsProc(const char *szName, LPARAM lParam)
+static int enumModulesSettingsProc(const char *szName, LPARAM lParam)
 {
 	ModuleSettingLL *msll = (ModuleSettingLL *)lParam;
 	if (!msll->first)
@@ -128,7 +128,7 @@ int enumModulesSettingsProc(const char *szName, LPARAM lParam)
 	return 0;
 }
 
-void FreeModuleSettingLL(ModuleSettingLL* msll)
+static void FreeModuleSettingLL(ModuleSettingLL* msll)
 {
 	if (msll)
 	{
@@ -156,17 +156,14 @@ void FreeModuleSettingLL(ModuleSettingLL* msll)
 	}
 }
 
-void RenameDbProto(MCONTACT hContact, MCONTACT hContactNew, char* oldName, char* newName, int delOld)
+static void RenameDbProto(MCONTACT hContact, MCONTACT hContactNew, char* oldName, char* newName, int delOld)
 {
-	DBVARIANT dbv;
-	struct ModSetLinkLinkItem *setting;
-
 	// enum all setting the contact has for the module
 	ModuleSettingLL settinglist = { NULL, NULL };
 	db_enum_settings(hContact, enumModulesSettingsProc, oldName, &settinglist);
 
-	setting = settinglist.first;
-	while (setting) {
+	for (ModSetLinkLinkItem *setting = settinglist.first; setting; setting = (ModSetLinkLinkItem *)setting->next) {
+		DBVARIANT dbv;
 		if (!GetSetting(hContact, oldName, setting->name, &dbv)) {
 			switch (dbv.type) {
 			case DBVT_BYTE:
@@ -192,12 +189,11 @@ void RenameDbProto(MCONTACT hContact, MCONTACT hContactNew, char* oldName, char*
 				db_unset(hContact, oldName, setting->name);
 		}
 		db_free(&dbv);
-		setting = (struct ModSetLinkLinkItem *)setting->next;
 	}
 	FreeModuleSettingLL(&settinglist);
 } // end code from dbe++
 
-void ShowPopup(char* szText, wchar_t* tszText, MCONTACT hContact)
+static void ShowPopup(char* szText, wchar_t* tszText, MCONTACT hContact)
 {
 	POPUPDATAT ppd = { 0 };
 	wchar_t* text = 0;
@@ -378,7 +374,7 @@ static LRESULT CALLBACK AuthReqEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
 	return mir_callNextSubclass(hwnd, AuthReqEditSubclassProc, msg, wParam, lParam);
 }
 
-INT_PTR CALLBACK AuthReqWndProc(HWND hdlg, UINT msg, WPARAM wparam, LPARAM lparam)
+static INT_PTR CALLBACK AuthReqWndProc(HWND hdlg, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static MCONTACT hcontact;
 
@@ -409,13 +405,13 @@ INT_PTR CALLBACK AuthReqWndProc(HWND hdlg, UINT msg, WPARAM wparam, LPARAM lpara
 	return 0;
 }
 
-BOOL isProtoOnline(char *szProto)
+static BOOL isProtoOnline(char *szProto)
 {
 	DWORD protoStatus = CallProtoService(szProto, PS_GETSTATUS, 0, 0);
 	return (protoStatus > ID_STATUS_OFFLINE && protoStatus < ID_STATUS_IDLE);
 }
 
-INT_PTR onSendAuthRequest(WPARAM wparam, LPARAM)
+static INT_PTR onSendAuthRequest(WPARAM wparam, LPARAM)
 {
 	MCONTACT hContact = (MCONTACT) wparam;
 	char *szProto = GetContactProto(hContact);
@@ -429,7 +425,7 @@ INT_PTR onSendAuthRequest(WPARAM wparam, LPARAM)
 	return 0;
 }
 
-INT_PTR onSendAdded(WPARAM wparam, LPARAM)
+static INT_PTR onSendAdded(WPARAM wparam, LPARAM)
 {
 	MCONTACT hContact = (MCONTACT) wparam;
 	ProtoChainSend(hContact, PSS_ADDED, 0, 0);
@@ -437,7 +433,7 @@ INT_PTR onSendAdded(WPARAM wparam, LPARAM)
 }
 
 // set the invisible-flag in db
-INT_PTR onSetInvis(WPARAM wparam, LPARAM)
+static INT_PTR onSetInvis(WPARAM wparam, LPARAM)
 {
 	MCONTACT hContact = (MCONTACT) wparam;
 	ProtoChainSend(hContact, PSS_SETAPPARENTMODE, (db_get_w(hContact, GetContactProto(hContact), "ApparentMode", 0) == ID_STATUS_OFFLINE) ? 0 : ID_STATUS_OFFLINE, 0);
@@ -445,14 +441,14 @@ INT_PTR onSetInvis(WPARAM wparam, LPARAM)
 }
 
 // set visible-flag in db
-INT_PTR onSetVis(WPARAM wparam, LPARAM)
+static INT_PTR onSetVis(WPARAM wparam, LPARAM)
 {
 	MCONTACT hContact = (MCONTACT) wparam;
 	ProtoChainSend(hContact, PSS_SETAPPARENTMODE, (db_get_w(hContact, GetContactProto(hContact), "ApparentMode", 0) == ID_STATUS_ONLINE) ? 0 : ID_STATUS_ONLINE, 0);
 	return 0;
 }
 
-INT_PTR onHide(WPARAM wparam, LPARAM)
+static INT_PTR onHide(WPARAM wparam, LPARAM)
 {
 	MCONTACT hContact = (MCONTACT) wparam;
 	db_set_b(hContact, "CList", "Hidden", (BYTE)!db_get_b(hContact, "CList", "Hidden", 0));
@@ -460,17 +456,17 @@ INT_PTR onHide(WPARAM wparam, LPARAM)
 }
 
 // following 4 functions should be self-explanatory
-void ModifyVisibleSet(int mode, BOOL alpha)
+static void ModifyVisibleSet(int mode, BOOL alpha)
 {
 	Menu_ModifyItem(hmenuVis, NULL, (mode) ? hIcons[1] : (alpha ? hIcons[3] : Skin_LoadIcon(SKINICON_OTHER_SMALLDOT)));
 }
 
-void ModifyInvisSet(int mode, BOOL alpha)
+static void ModifyInvisSet(int mode, BOOL alpha)
 {
 	Menu_ModifyItem(hmenuOff, NULL, (mode) ? hIcons[2] : (alpha ? hIcons[4] : Skin_LoadIcon(SKINICON_OTHER_SMALLDOT)));
 }
 
-void ModifyCopyID(MCONTACT hContact, BOOL bShowID, BOOL bTrimID)
+static void ModifyCopyID(MCONTACT hContact, BOOL bShowID, BOOL bTrimID)
 {
 	if (isMetaContact(hContact)) {
 		MCONTACT hC = db_mc_getMostOnline(hContact);
@@ -511,7 +507,7 @@ void ModifyCopyID(MCONTACT hContact, BOOL bShowID, BOOL bTrimID)
 	DestroyIcon(hIconCID);
 }
 
-void ModifyStatusMsg(MCONTACT hContact)
+static void ModifyStatusMsg(MCONTACT hContact)
 {
 	LPSTR szProto = GetContactProto(hContact);
 	if (!szProto) {
@@ -530,7 +526,7 @@ void ModifyStatusMsg(MCONTACT hContact)
 	DestroyIcon(hIconSMsg);
 }
 
-void ModifyCopyIP(MCONTACT hContact)
+static void ModifyCopyIP(MCONTACT hContact)
 {
 	LPSTR szProto = GetContactProto(hContact);
 	if (!szProto) {
@@ -549,7 +545,7 @@ void ModifyCopyIP(MCONTACT hContact)
 	DestroyIcon(hIconCIP);
 }
 
-void ModifyCopyMirVer(MCONTACT hContact)
+static void ModifyCopyMirVer(MCONTACT hContact)
 {
 	HICON hMenuIcon = NULL;
 	if (ServiceExists(MS_FP_GETCLIENTICONT)) {
@@ -564,7 +560,7 @@ void ModifyCopyMirVer(MCONTACT hContact)
 	Menu_ModifyItem(hmenuCopyMirVer, NULL, hMenuIcon);
 }
 
-INT_PTR onCopyID(WPARAM wparam, LPARAM lparam)
+static INT_PTR onCopyID(WPARAM wparam, LPARAM lparam)
 {
 	char szID[256], buffer[256];
 
@@ -600,7 +596,7 @@ INT_PTR onCopyID(WPARAM wparam, LPARAM lparam)
 	return 0;
 }
 
-INT_PTR onCopyStatusMsg(WPARAM wparam, LPARAM lparam)
+static INT_PTR onCopyStatusMsg(WPARAM wparam, LPARAM lparam)
 {
 	MCONTACT hContact = (MCONTACT) wparam;
 	char par[32];
@@ -639,7 +635,7 @@ INT_PTR onCopyStatusMsg(WPARAM wparam, LPARAM lparam)
 	return 0;
 }
 
-INT_PTR onCopyIP(WPARAM wparam, LPARAM lparam)
+static INT_PTR onCopyIP(WPARAM wparam, LPARAM lparam)
 {
 	char *szProto = GetContactProto((MCONTACT)wparam);
 
@@ -653,7 +649,7 @@ INT_PTR onCopyIP(WPARAM wparam, LPARAM lparam)
 	return 0;
 }
 
-INT_PTR onCopyMirVer(WPARAM wparam, LPARAM lparam)
+static INT_PTR onCopyMirVer(WPARAM wparam, LPARAM lparam)
 {
 	LPTSTR msg = getMirVer((MCONTACT)wparam);
 	if (msg) {
@@ -666,7 +662,13 @@ INT_PTR onCopyMirVer(WPARAM wparam, LPARAM lparam)
 	return 0;
 }
 
-INT_PTR onRecvFiles(WPARAM wparam, LPARAM)
+static INT_PTR OpenIgnoreOptions(WPARAM, LPARAM)
+{
+	Options_Open(L"Contacts", L"Ignore");
+	return 0;
+}
+
+static INT_PTR onRecvFiles(WPARAM wparam, LPARAM)
 {
 	char path[MAX_PATH];
 	CallService(MS_FILE_GETRECEIVEDFILESFOLDER, wparam, (LPARAM)&path);
@@ -674,30 +676,31 @@ INT_PTR onRecvFiles(WPARAM wparam, LPARAM)
 	return 0;
 }
 
-INT_PTR onChangeProto(WPARAM wparam, LPARAM lparam)
+static INT_PTR onChangeProto(WPARAM wparam, LPARAM lparam)
 {
 	MCONTACT hContact = (MCONTACT)wparam, hContactNew;
-	char* szProto = GetContactProto(hContact);
-	if (!mir_strcmp(szProto, (char*)lparam))
+	char *szOldProto = GetContactProto(hContact);
+	char *szNewProto = (char *)lparam;
+	if (!mir_strcmp(szOldProto, szNewProto))
 		return 0;
 
 	if (CTRL_IS_PRESSED) {
 		hContactNew = hContact;
-		RenameDbProto(hContact, hContactNew, GetContactProto(hContact), (char*)lparam, 1);
-		Proto_RemoveFromContact(hContact, GetContactProto(hContact));
-		Proto_AddToContact(hContactNew, (char*)lparam);
+		RenameDbProto(hContact, hContactNew, szOldProto, szNewProto, 1);
+		Proto_RemoveFromContact(hContact, szOldProto);
+		Proto_AddToContact(hContactNew, szNewProto);
 	}
 	else {
 		hContactNew = db_add_contact();
 		if (hContactNew) {
-			Proto_AddToContact(hContactNew, (char*)lparam);
-			RenameDbProto(hContact, hContactNew, GetContactProto(hContact), (char*)lparam, 0);
+			Proto_AddToContact(hContactNew, szNewProto);
+			RenameDbProto(hContact, hContactNew, szOldProto, szNewProto, 0);
 			RenameDbProto(hContact, hContactNew, "CList", "CList", 0);
 		}
 		else
 			return 0;
 	}
-	if (MessageBox(NULL, (LPCTSTR)TranslateT("Do you want to send authorization request\nto new contact?"),
+	if (MessageBox(NULL, TranslateT("Do you want to send authorization request\nto new contact?"),
 		L"Miranda NG", MB_OKCANCEL | MB_SETFOREGROUND | MB_TOPMOST) == IDOK)
 
 		onSendAuthRequest((WPARAM)hContactNew, 0);
@@ -705,7 +708,7 @@ INT_PTR onChangeProto(WPARAM wparam, LPARAM lparam)
 	return 0;
 }
 
-int isIgnored(MCONTACT hContact, int type)
+static int isIgnored(MCONTACT hContact, int type)
 {
 	if (type != IGNOREEVENT_ALL)
 		return CallService(MS_IGNORE_ISIGNORED, hContact, (LPARAM)type);
@@ -718,7 +721,7 @@ int isIgnored(MCONTACT hContact, int type)
 	return (all == _countof(ii) - 1) ? 1 : 0; // ignoring all or not
 }
 
-INT_PTR onIgnore(WPARAM wparam, LPARAM lparam)
+static INT_PTR onIgnore(WPARAM wparam, LPARAM lparam)
 {
 	if (db_get_b(NULL, MODULENAME, "ignorehide", 0) && (lparam == IGNOREEVENT_ALL))
 		db_set_b((MCONTACT)wparam, "CList", "Hidden", (isIgnored((MCONTACT)wparam, lparam) ? (byte)0 : (byte)1));
@@ -753,7 +756,7 @@ static void ModifySubmenuItem(HGENMENU hItem, int checked, int hidden)
 }
 
 // called when the contact-menu is built
-int BuildMenu(WPARAM wparam, LPARAM)
+static int BuildMenu(WPARAM wparam, LPARAM)
 {
 	DWORD flags = db_get_dw(NULL, MODULENAME, "flags", vf_default);
 	int j = 0, all = 0, hide = 0;
@@ -852,7 +855,7 @@ int BuildMenu(WPARAM wparam, LPARAM)
 	return 0;
 }
 
-int EnumProtoSubmenu(WPARAM, LPARAM)
+static int EnumProtoSubmenu(WPARAM, LPARAM)
 {
 	int pos = 1000;
 	if (protoCount) // remove old items
@@ -937,20 +940,7 @@ static int ModuleLoad(WPARAM, LPARAM)
 // called when all modules are loaded
 static int PluginInit(WPARAM, LPARAM)
 {
-	int pos = 1000, i = 0;
-
-	CreateServiceFunction(MS_SETINVIS, onSetInvis);
-	CreateServiceFunction(MS_SETVIS, onSetVis);
-	CreateServiceFunction(MS_HIDE, onHide);
-	CreateServiceFunction(MS_IGNORE, onIgnore);
-	CreateServiceFunction(MS_PROTO, onChangeProto);
-	CreateServiceFunction(MS_ADDED, onSendAdded);
-	CreateServiceFunction(MS_AUTHREQ, onSendAuthRequest);
-	CreateServiceFunction(MS_COPYID, onCopyID);
-	CreateServiceFunction(MS_RECVFILES, onRecvFiles);
-	CreateServiceFunction(MS_STATUSMSG, onCopyStatusMsg);
-	CreateServiceFunction(MS_COPYIP, onCopyIP);
-	CreateServiceFunction(MS_COPYMIRVER, onCopyMirVer);
+	int pos = 1000;
 
 	ModuleLoad(0, 0);
 
@@ -984,14 +974,12 @@ static int PluginInit(WPARAM, LPARAM)
 
 	hIgnoreItem[0] = AddSubmenuItem(hmenuIgnore, ii[0].name, Skin_LoadIcon(ii[0].icon), 0, MS_IGNORE, pos, ii[0].type);
 	pos += 100000; // insert separator
-	for (i = 1; i < _countof(ii); i++)
+	for (int i = 1; i < _countof(ii); i++)
 		hIgnoreItem[i] = AddSubmenuItem(hmenuIgnore, ii[i].name, Skin_LoadIcon(ii[i].icon), 0, MS_IGNORE, pos++, ii[i].type);
 
+	AddSubmenuItem(hmenuIgnore, LPGENW("Open ignore settings"), IcoLib_GetIcon("miex_ignore"), 0, MS_OPENIGNORE, pos, 0);
+
 	pos += 100000; // insert separator
-	ood.cbSize = sizeof(ood);
-	ood.pszGroup = "Contacts";
-	ood.pszPage = "Ignore";
-	AddSubmenuItem(hmenuIgnore, LPGENW("Open ignore settings"), IcoLib_GetIcon("miex_ignore"), 0, "Opt/OpenOptions", pos, (INT_PTR)&ood);
 
 	SET_UID(mi, 0x820f4637, 0xbcc4, 0x46b7, 0x9c, 0x67, 0xf9, 0x69, 0xed, 0xc2, 0x46, 0xa2);
 	mi.position++;
@@ -1056,9 +1044,6 @@ static int PluginInit(WPARAM, LPARAM)
 	hIcons[3] = MakeHalfAlphaIcon(hIcons[1]);
 	hIcons[4] = MakeHalfAlphaIcon(hIcons[2]);
 
-	HookEvent(ME_CLIST_PREBUILDCONTACTMENU, BuildMenu);
-	HookEvent(ME_OPT_INITIALISE, OptionsInit);
-	HookEvent(ME_PROTO_ACCLISTCHANGED, EnumProtoSubmenu);
 	if (HookEvent(ME_MSG_TOOLBARLOADED, TabsrmmButtonsInit)) {
 		HookEvent(ME_MSG_BUTTONPRESSED, TabsrmmButtonPressed);
 		HookEvent(ME_MSG_WINDOWEVENT, ContactWindowOpen);
@@ -1080,9 +1065,26 @@ extern "C" __declspec(dllexport) int Load(void)
 	Icon_Register(hinstance, LPGEN("MenuItemEx"), iconList, _countof(iconList));
 	Icon_Register(hinstance, LPGEN("MenuItemEx"), overlayIconList, _countof(overlayIconList));
 
+	CreateServiceFunction(MS_SETINVIS, onSetInvis);
+	CreateServiceFunction(MS_SETVIS, onSetVis);
+	CreateServiceFunction(MS_HIDE, onHide);
+	CreateServiceFunction(MS_IGNORE, onIgnore);
+	CreateServiceFunction(MS_PROTO, onChangeProto);
+	CreateServiceFunction(MS_ADDED, onSendAdded);
+	CreateServiceFunction(MS_AUTHREQ, onSendAuthRequest);
+	CreateServiceFunction(MS_COPYID, onCopyID);
+	CreateServiceFunction(MS_RECVFILES, onRecvFiles);
+	CreateServiceFunction(MS_STATUSMSG, onCopyStatusMsg);
+	CreateServiceFunction(MS_COPYIP, onCopyIP);
+	CreateServiceFunction(MS_COPYMIRVER, onCopyMirVer);
+	CreateServiceFunction(MS_OPENIGNORE, OpenIgnoreOptions);
+
 	HookEvent(ME_SYSTEM_MODULESLOADED, PluginInit);
 	HookEvent(ME_SYSTEM_MODULELOAD, ModuleLoad);
 	HookEvent(ME_SYSTEM_MODULEUNLOAD, ModuleLoad);
+	HookEvent(ME_CLIST_PREBUILDCONTACTMENU, BuildMenu);
+	HookEvent(ME_OPT_INITIALISE, OptionsInit);
+	HookEvent(ME_PROTO_ACCLISTCHANGED, EnumProtoSubmenu);
 	return 0;
 }
 

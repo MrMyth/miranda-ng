@@ -1388,9 +1388,8 @@ int InitializeOptions(WPARAM wParam, LPARAM)
 	OPTIONSDIALOGPAGE odp = { 0 };
 	odp.hInstance = g_hInst;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS);
-	odp.pszTitle = LPGEN("Keyboard Flash");
-	odp.pszGroup = LPGEN("Events");
-	odp.groupPosition = 910000000;
+	odp.szTitle.a = LPGEN("Keyboard Flash");
+	odp.szGroup.a = LPGEN("Events");
 	odp.flags = ODPF_BOLDGROUPS;
 	odp.pfnDlgProc = DlgProcOptions;
 	Options_AddPage(wParam, &odp);
